@@ -35,5 +35,7 @@ Now we can reach our site via:
 
     http://user.xyz00.hostsharing.net
 
---- Open Source Hosting ---
- https://www.hostsharing.net
+Open Source Hosting
+-------------------
+
+https://www.hostsharing.net
