@@ -1,6 +1,6 @@
 Hostsharing-Ansible-Flask
 ==========================
-This Ansible playbook will install the latest Flask release on a server from www.hostsharing.net.
+This Ansible playbook will install the latest [Flask](https://flask.palletsprojects.com/) release on a server from www.hostsharing.net.
 It uses Passenger-WSGI and no additional daemon is needed.
 
 To use these modules we have to create a file named ".hsadmin.properties" in the home directory of the package admins. In it we have to insert the packagename and password of the package admin. 
