@@ -1,0 +1,87 @@
+---
+- hosts: flask
+  become_user: "{{pac}}-{{user}}"
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
+
+  #########################
+  # Create user and domain
+  #########################
+  - name: ensure user exists
+    hsuser.js: name="{{pac}}-{{user}}" password="{{password}}" exists="true"
+  - name: setup domain
+    hsdomain.js: name="{{domain}}" owner="{{pac}}-{{user}}" exists="true"
+  - name: Sleep to avoid issue invalid user for temporary files
+    pause:
+      seconds: 10
+
+  #####################
+  # create directories
+  #####################
+  - name: Create directory for myproject
+    become: yes
+    file:
+      path: "/home/pacs/{{pac}}/users/{{user}}/myproject"
+      state: directory
+  - name: Create bin directory
+    become: yes
+    file:
+      path: "/home/pacs/{{pac}}/users/{{user}}/bin"
+      state: directory
+
+  #################################
+  # initialise virtual environment
+  #################################
+  - name: We want the venv directory in myproject
+    become: yes
+    lineinfile:
+      path: "/home/pacs/{{pac}}/users/{{user}}/.profile"
+      line: "export PIPENV_VENV_IN_PROJECT=1"
+      create: yes
+      mode: '0755'
+  - name: Run a pipenv install
+    become: yes
+    command: "pipenv install"
+    args:
+      creates: "/home/pacs/{{pac}}/users/{{user}}/myproject/Pipfile.lock"
+      chdir: "/home/pacs/{{pac}}/users/{{user}}/myproject"
+    environment:
+      PIPENV_VENV_IN_PROJECT: 1
+
+  ##########################
+  # setup flask application
+  ##########################
+  - name: Install flask
+    become: yes
+    command: "pipenv install flask"
+    args:
+      chdir: "/home/pacs/{{pac}}/users/{{user}}/myproject"
+    environment:
+      PIPENV_VENV_IN_PROJECT: 1
+  - name: upload myproject.py file to project directory
+    become: yes
+    template: dest="/home/pacs/{{pac}}/users/{{user}}/myproject/myproject.py" src="templates/myproject.py" mode=0644
+
+  ########################
+  # configure the website
+  ########################
+  - name: upload passenger_wsgi.py file to app directory
+    become: yes
+    template: dest="/home/pacs/{{pac}}/users/{{user}}/doms/{{domain}}/app-ssl/passenger_wsgi.py" src="templates/passenger_wsgi.py" mode=0644
+  - name: upload restart script to bin directory
+    become: yes
+    template: dest="/home/pacs/{{pac}}/users/{{user}}/bin" src="templates/restart.sh" mode=0755
+  - name: delete index.html in www directory
+    become: yes
+    file:
+      path: /home/pacs/{{pac}}/users/{{user}}/doms/{{domain}}/subs-ssl/www/index.html
+      state: absent
+  - name: drop the .htaccess file from htdocs-ssl
+    become: yes
+    file:
+      path: /home/pacs/{{pac}}/users/{{user}}/doms/{{domain}}/htdocs-ssl/.htaccess
+      state: absent
+  - name: upload .htaccess file to domain directory
+    become: yes
+    template: dest="/home/pacs/{{pac}}/users/{{user}}/doms/{{domain}}/.htaccess" src="templates/htaccess" mode=0644
